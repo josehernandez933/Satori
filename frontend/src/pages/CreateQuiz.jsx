@@ -126,6 +126,8 @@ export default function CreateQuiz() {
     setCargando(true);
     try {
       const payload = { titulo, descripcion, docenteId: usuario?.id || usuario?._id || "docente-temp", preguntas, configuracion: config };
+      console.log(payload);
+      console.log(JSON.stringify(payload, null, 2));
       if (esEdicion) {
         await quizzesAPI.update(id, payload);
         toast.success('Cuestionario actualizado ✅');
@@ -134,10 +136,17 @@ export default function CreateQuiz() {
         toast.success('Cuestionario guardado ✅');
       }
       navigate('/dashboard');
-    } catch {
-      toast.error('Error al guardar el cuestionario');
-    } finally {
-      setCargando(false);
+    } catch (error) {
+
+      console.log("ERROR COMPLETO:");
+      console.log(error);
+
+      if (error.response) {
+        console.log("RESPONSE:");
+        console.log(error.response);
+      }
+
+      toast.error(error.message || 'Error al guardar el cuestionario');
     }
   };
 
