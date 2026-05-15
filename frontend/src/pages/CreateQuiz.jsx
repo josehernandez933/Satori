@@ -27,17 +27,17 @@ export default function CreateQuiz() {
   const { usuario } = useAuth();
   const esEdicion = Boolean(id);
 
-  const [titulo, setTitulo]         = useState('');
+  const [titulo, setTitulo] = useState('');
   const [descripcion, setDescripcion] = useState('');
-  const [preguntas, setPreguntas]   = useState([]);
-  const [config, setConfig]         = useState({
+  const [preguntas, setPreguntas] = useState([]);
+  const [config, setConfig] = useState({
     tiempoPorPregunta: 30,
     mostrarRanking: true,
     sonidos: true,
   });
   const [preguntaEditando, setPreguntaEditando] = useState(null); // índice o null
-  const [preguntaTemp, setPreguntaTemp]         = useState({ ...PREGUNTA_VACIA });
-  const [cargando, setCargando]     = useState(false);
+  const [preguntaTemp, setPreguntaTemp] = useState({ ...PREGUNTA_VACIA });
+  const [cargando, setCargando] = useState(false);
   const [bancoVisible, setBancoVisible] = useState(false);
   const [bancoPreguntasDisp, setBancoPreguntasDisp] = useState([]);
 
@@ -125,7 +125,7 @@ export default function CreateQuiz() {
     if (preguntas.length === 0) return toast.error('Agrega al menos una pregunta');
     setCargando(true);
     try {
-      const payload = { titulo, descripcion, docenteId: usuario.id, preguntas, configuracion: config };
+      const payload = { titulo, descripcion, docenteId: usuario._id, preguntas, configuracion: config };
       if (esEdicion) {
         await quizzesAPI.update(id, payload);
         toast.success('Cuestionario actualizado ✅');
@@ -327,11 +327,10 @@ export default function CreateQuiz() {
                         key={letra}
                         type="button"
                         onClick={() => setPreguntaTemp(p => ({ ...p, correcta: letra }))}
-                        className={`flex-1 py-2.5 rounded-xl font-display font-bold text-base transition-all ${
-                          preguntaTemp.correcta === letra
+                        className={`flex-1 py-2.5 rounded-xl font-display font-bold text-base transition-all ${preguntaTemp.correcta === letra
                             ? 'text-white scale-105'
                             : 'text-gray-400 opacity-50 hover:opacity-75'
-                        }`}
+                          }`}
                         style={{
                           background: preguntaTemp.correcta === letra ? COLORES_OPCION[letra] : 'rgba(255,255,255,0.07)',
                           boxShadow: preguntaTemp.correcta === letra ? `0 0 15px ${COLORES_OPCION[letra]}66` : 'none'
