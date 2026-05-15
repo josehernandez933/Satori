@@ -1,0 +1,21 @@
+{
+  "name": "satori-backend",
+  "version": "1.0.0",
+  "description": "SATORI - Backend API y Socket.io",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js"
+  },
+  "keywords": ["satori", "quiz", "education", "socket.io"],
+  "author": "SATORI",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "lowdb": "^1.0.0",
+    "nodemon": "^3.0.1",
+    "socket.io": "^4.6.1",
+    "uuid": "^9.0.0"
+  }
+}
