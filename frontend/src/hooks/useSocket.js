@@ -14,7 +14,8 @@ export function useSocket() {
   useEffect(() => {
     // Reutilizar conexión existente o crear nueva
     if (!socketInstance || !socketInstance.connected) {
-      socketInstance = io('http://localhost:3001', {
+      const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+      socketInstance = io(BACKEND_URL, {
         transports: ['websocket', 'polling'],
         reconnection: true,
         reconnectionAttempts: 5,

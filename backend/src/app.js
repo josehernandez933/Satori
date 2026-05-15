@@ -1,28 +1,39 @@
 // =============================================
 // SATORI - Servidor Principal
-// Express + Socket.io + LowDB
+// Express + Socket.io + MongoDB
 // =============================================
 
+require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
-const path = require('path');
-const low = require('lowdb');
-const FileSync = require('lowdb/adapters/FileSync');
+const connectDB = require('./config/db');
+const Question = require('./models/Question');
 const networkQuestions = require('./data/networkQuestions');
 
-// --- Inicializar base de datos LowDB ---
-const adapter = new FileSync(path.join(__dirname, '../db.json'));
-const db = low(adapter);
+// --- Inicializar base de datos MongoDB ---
+connectDB();
 
-// Estructura inicial de la base de datos
-db.defaults({
-  users: [],
-  quizzes: [],
-  games: [],
-  questions: networkQuestions   // Cargar banco de preguntas predeterminado
-}).write();
+// --- Función para cargar preguntas por defecto si la BD está vacía ---
+const seedQuestions = async () => {
+  try {
+    const count = await Question.countDocuments();
+    if (count === 0) {
+      console.log('🔄 Inicializando banco de preguntas predeterminado...');
+      // Las preguntas en networkQuestions no tienen formato exacto Mongoose, 
+      // así que mapeamos si es necesario o las guardamos directamente.
+      await Question.insertMany(networkQuestions.map(q => ({
+        ...q,
+        esPersonalizada: false
+      })));
+      console.log('✅ Preguntas predeterminadas cargadas.');
+    }
+  } catch (error) {
+    console.error('❌ Error cargando preguntas:', error);
+  }
+};
+seedQuestions();
 
 // --- Configurar Express ---
 const app = express();
@@ -31,9 +42,6 @@ const server = http.createServer(app);
 // Middleware
 app.use(cors({ origin: '*' }));
 app.use(express.json());
-
-// Compartir db con rutas via app.locals
-app.locals.db = db;
 
 // --- Rutas API ---
 const authRoutes = require('./routes/auth');
@@ -57,15 +65,13 @@ const io = new Server(server, {
 });
 
 // Inicializar lógica de juego con Socket.io
-require('./sockets/gameSocket')(io, db);
+require('./sockets/gameSocket')(io);
 
 // --- Iniciar servidor ---
 const PORT = process.env.PORT || 3001;
-server.listen(PORT, () => {
+server.listen(PORT, async () => {
   console.log(`\n🚀 SATORI Backend corriendo en http://localhost:${PORT}`);
-  console.log(`📡 Socket.io listo para conexiones en tiempo real`);
-  console.log(`🗄️  Base de datos: db.json`);
-  console.log(`❓ Preguntas cargadas: ${db.get('questions').value().length}\n`);
+  console.log(`📡 Socket.io listo para conexiones en tiempo real\n`);
 });
 
 module.exports = { app, server };

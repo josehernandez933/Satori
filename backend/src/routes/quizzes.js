@@ -4,82 +4,94 @@
 
 const express = require('express');
 const router = express.Router();
-const { v4: uuidv4 } = require('uuid');
+const Quiz = require('../models/Quiz');
 
 // GET /api/quizzes - Obtener todos los cuestionarios del docente
-router.get('/', (req, res) => {
-  const db = req.app.locals.db;
-  const { docenteId } = req.query;
-  let quizzes = db.get('quizzes').value();
-  if (docenteId) {
-    quizzes = quizzes.filter(q => q.docenteId === docenteId);
+router.get('/', async (req, res) => {
+  try {
+    const { docenteId } = req.query;
+    const query = docenteId ? { docenteId } : {};
+    const quizzes = await Quiz.find(query);
+    res.json(quizzes);
+  } catch (error) {
+    console.error('Error obteniendo cuestionarios:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
   }
-  res.json(quizzes);
 });
 
 // GET /api/quizzes/:id - Obtener un cuestionario específico
-router.get('/:id', (req, res) => {
-  const db = req.app.locals.db;
-  const quiz = db.get('quizzes').find({ id: req.params.id }).value();
-  if (!quiz) return res.status(404).json({ error: 'Cuestionario no encontrado' });
-  res.json(quiz);
+router.get('/:id', async (req, res) => {
+  try {
+    const quiz = await Quiz.findOne({ id: req.params.id });
+    if (!quiz) return res.status(404).json({ error: 'Cuestionario no encontrado' });
+    res.json(quiz);
+  } catch (error) {
+    res.status(500).json({ error: 'Error obteniendo cuestionario' });
+  }
 });
 
 // POST /api/quizzes - Crear cuestionario
-router.post('/', (req, res) => {
-  const db = req.app.locals.db;
-  const { titulo, descripcion, docenteId, preguntas, configuracion } = req.body;
+router.post('/', async (req, res) => {
+  try {
+    const { titulo, descripcion, docenteId, preguntas, configuracion } = req.body;
 
-  if (!titulo || !docenteId) {
-    return res.status(400).json({ error: 'Título y docenteId son requeridos' });
+    if (!titulo || !docenteId) {
+      return res.status(400).json({ error: 'Título y docenteId son requeridos' });
+    }
+
+    const nuevoQuiz = new Quiz({
+      titulo,
+      descripcion: descripcion || '',
+      docenteId,
+      preguntas: preguntas || [],
+      configuracion: {
+        tiempoPorPregunta: configuracion?.tiempoPorPregunta || 30,
+        mostrarRanking: configuracion?.mostrarRanking !== false,
+        sonidos: configuracion?.sonidos !== false,
+        ...configuracion
+      }
+    });
+
+    await nuevoQuiz.save();
+    res.status(201).json(nuevoQuiz);
+  } catch (error) {
+    console.error('Error creando cuestionario:', error);
+    res.status(500).json({ error: 'Error creando cuestionario' });
   }
-
-  const nuevoQuiz = {
-    id: uuidv4(),
-    titulo,
-    descripcion: descripcion || '',
-    docenteId,
-    preguntas: preguntas || [],
-    configuracion: {
-      tiempoPorPregunta: configuracion?.tiempoPorPregunta || 30,
-      mostrarRanking: configuracion?.mostrarRanking !== false,
-      sonidos: configuracion?.sonidos !== false,
-      ...configuracion
-    },
-    creadoEn: new Date().toISOString(),
-    actualizadoEn: new Date().toISOString()
-  };
-
-  db.get('quizzes').push(nuevoQuiz).write();
-  res.status(201).json(nuevoQuiz);
 });
 
 // PUT /api/quizzes/:id - Actualizar cuestionario
-router.put('/:id', (req, res) => {
-  const db = req.app.locals.db;
-  const quiz = db.get('quizzes').find({ id: req.params.id }).value();
-  if (!quiz) return res.status(404).json({ error: 'Cuestionario no encontrado' });
+router.put('/:id', async (req, res) => {
+  try {
+    const quiz = await Quiz.findOne({ id: req.params.id });
+    if (!quiz) return res.status(404).json({ error: 'Cuestionario no encontrado' });
 
-  const actualizado = {
-    ...quiz,
-    ...req.body,
-    id: quiz.id,           // No permitir cambiar ID
-    docenteId: quiz.docenteId, // No permitir cambiar dueño
-    actualizadoEn: new Date().toISOString()
-  };
+    // No permitir cambiar ID ni docenteId
+    delete req.body.id;
+    delete req.body.docenteId;
 
-  db.get('quizzes').find({ id: req.params.id }).assign(actualizado).write();
-  res.json(actualizado);
+    const actualizado = await Quiz.findOneAndUpdate(
+      { id: req.params.id },
+      { $set: req.body },
+      { new: true } // Para que retorne el documento actualizado
+    );
+
+    res.json(actualizado);
+  } catch (error) {
+    res.status(500).json({ error: 'Error actualizando cuestionario' });
+  }
 });
 
 // DELETE /api/quizzes/:id - Eliminar cuestionario
-router.delete('/:id', (req, res) => {
-  const db = req.app.locals.db;
-  const quiz = db.get('quizzes').find({ id: req.params.id }).value();
-  if (!quiz) return res.status(404).json({ error: 'Cuestionario no encontrado' });
+router.delete('/:id', async (req, res) => {
+  try {
+    const quiz = await Quiz.findOneAndDelete({ id: req.params.id });
+    if (!quiz) return res.status(404).json({ error: 'Cuestionario no encontrado' });
 
-  db.get('quizzes').remove({ id: req.params.id }).write();
-  res.json({ mensaje: 'Cuestionario eliminado exitosamente' });
+    res.json({ mensaje: 'Cuestionario eliminado exitosamente' });
+  } catch (error) {
+    res.status(500).json({ error: 'Error eliminando cuestionario' });
+  }
 });
 
 module.exports = router;

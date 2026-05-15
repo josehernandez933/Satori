@@ -3,7 +3,8 @@
 // Comunicación con el backend Express
 // =============================================
 
-const API_BASE = '/api';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
+const API_BASE = `${BACKEND_URL}/api`;
 
 // Helper para hacer peticiones
 async function request(endpoint, options = {}) {

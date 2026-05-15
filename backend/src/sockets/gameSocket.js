@@ -1,9 +1,11 @@
 // =============================================
 // SATORI - Lógica del Juego en Tiempo Real
-// Socket.io - GameSocket
+// Socket.io - GameSocket con Mongoose
 // =============================================
 
 const { v4: uuidv4 } = require('uuid');
+const Quiz = require('../models/Quiz');
+const Game = require('../models/Game');
 
 // Almacén de salas activas en memoria
 const salas = {}; // { codigoSala: { ...datosPartida } }
@@ -30,7 +32,7 @@ function shuffleArray(array) {
   return newArray;
 }
 
-module.exports = function(io, db) {
+module.exports = function(io) {
 
   io.on('connection', (socket) => {
     console.log(`🔌 Conectado: ${socket.id}`);
@@ -38,38 +40,43 @@ module.exports = function(io, db) {
     // ----------------------------------------
     // DOCENTE: Crear sala de juego
     // ----------------------------------------
-    socket.on('crear-sala', ({ quizId, docenteId, docenteNombre }) => {
-      const quiz = db.get('quizzes').find({ id: quizId }).value();
-      if (!quiz) {
-        socket.emit('error-sala', { mensaje: 'Cuestionario no encontrado' });
-        return;
+    socket.on('crear-sala', async ({ quizId, docenteId, docenteNombre }) => {
+      try {
+        const quiz = await Quiz.findOne({ id: quizId });
+        if (!quiz) {
+          socket.emit('error-sala', { mensaje: 'Cuestionario no encontrado' });
+          return;
+        }
+
+        const quizClonado = JSON.parse(JSON.stringify(quiz));
+        quizClonado.preguntas = shuffleArray(quizClonado.preguntas);
+
+        const codigo = generarCodigo();
+        const sala = {
+          id: uuidv4(),
+          codigo,
+          quizId,
+          docenteId,
+          docenteNombre,
+          quiz: quizClonado,
+          jugadores: [],
+          estado: 'esperando', // esperando | jugando | finalizado
+          preguntaActual: -1,
+          iniciada: false,
+          creadaEn: new Date().toISOString()
+        };
+
+        salas[codigo] = sala;
+        socket.join(codigo);
+        socket.salaActual = codigo;
+        socket.esDocente = true;
+
+        console.log(`🎮 Sala creada: ${codigo} | Quiz: ${quiz.titulo}`);
+        socket.emit('sala-creada', { codigo, sala });
+      } catch (error) {
+        console.error('Error al crear sala:', error);
+        socket.emit('error-sala', { mensaje: 'Error al cargar el cuestionario' });
       }
-
-      const quizClonado = JSON.parse(JSON.stringify(quiz));
-      quizClonado.preguntas = shuffleArray(quizClonado.preguntas);
-
-      const codigo = generarCodigo();
-      const sala = {
-        id: uuidv4(),
-        codigo,
-        quizId,
-        docenteId,
-        docenteNombre,
-        quiz: quizClonado,
-        jugadores: [],
-        estado: 'esperando', // esperando | jugando | finalizado
-        preguntaActual: -1,
-        iniciada: false,
-        creadaEn: new Date().toISOString()
-      };
-
-      salas[codigo] = sala;
-      socket.join(codigo);
-      socket.salaActual = codigo;
-      socket.esDocente = true;
-
-      console.log(`🎮 Sala creada: ${codigo} | Quiz: ${quiz.titulo}`);
-      socket.emit('sala-creada', { codigo, sala });
     });
 
     // ----------------------------------------
@@ -181,6 +188,10 @@ module.exports = function(io, db) {
       jugador.respuestas.push(registro);
       jugador.puntos += puntos;
 
+      if (esCorrecta) {
+        jugador.respuestasCorrectas = (jugador.respuestasCorrectas || 0) + 1;
+      }
+
       console.log(`📝 ${jugador.nombre} respondió: ${respuesta} (${esCorrecta ? '✅' : '❌'}) +${puntos}pts`);
 
       // Confirmar al jugador su respuesta
@@ -236,7 +247,7 @@ module.exports = function(io, db) {
     socket.on('finalizar-partida', ({ codigo }) => {
       const sala = salas[codigo];
       if (!sala) return;
-      finalizarPartida(codigo, io, sala, db);
+      finalizarPartida(codigo, io, sala);
     });
 
     // ----------------------------------------
@@ -272,7 +283,7 @@ module.exports = function(io, db) {
     // Si ya no hay más preguntas, finalizar
     if (sala.preguntaActual >= preguntas.length) {
       mostrarResultadoPregunta(codigo, io, sala);
-      setTimeout(() => finalizarPartida(codigo, io, sala, db), 5000);
+      setTimeout(() => finalizarPartida(codigo, io, sala), 5000);
       return;
     }
 
@@ -356,7 +367,7 @@ module.exports = function(io, db) {
   // ----------------------------------------
   // Función: Finalizar partida completa
   // ----------------------------------------
-  function finalizarPartida(codigo, io, sala, db) {
+  async function finalizarPartida(codigo, io, sala) {
     sala.estado = 'finalizado';
 
     const podio = [...sala.jugadores]
@@ -373,23 +384,34 @@ module.exports = function(io, db) {
       .sort((a, b) => b.puntos - a.puntos)
       .map((j, idx) => ({ posicion: idx + 1, ...j }));
 
-    // Guardar partida en la base de datos
-    const registroPartida = {
-      id: sala.id,
-      codigo,
-      quizId: sala.quizId,
-      quizTitulo: sala.quiz.titulo,
-      docenteId: sala.docenteId,
-      docenteNombre: sala.docenteNombre,
-      jugadores: sala.jugadores.length,
-      podio,
-      rankingFinal,
-      totalPreguntas: sala.quiz.preguntas.length,
-      finalizadoEn: new Date().toISOString()
-    };
+    // Formatear jugadores para Mongoose
+    const jugadoresParaBD = sala.jugadores.map(j => ({
+      id: j.id,
+      nombre: j.nombre,
+      avatar: j.avatar,
+      puntos: j.puntos,
+      respuestasCorrectas: j.respuestasCorrectas || 0,
+      estado: j.conectado ? 'activo' : 'desconectado'
+    }));
 
-    db.get('games').push(registroPartida).write();
-    console.log(`🏆 Partida finalizada en sala ${codigo}. Ganador: ${podio[0]?.nombre}`);
+    // Guardar partida en la base de datos MongoDB
+    try {
+      const registroPartida = new Game({
+        id: sala.id,
+        pin: codigo,
+        quizId: sala.quizId,
+        docenteId: sala.docenteId,
+        jugadores: jugadoresParaBD,
+        estado: 'terminado',
+        iniciadoEn: sala.creadaEn,
+        finalizadoEn: new Date()
+      });
+
+      await registroPartida.save();
+      console.log(`🏆 Partida finalizada en sala ${codigo}. Ganador: ${podio[0]?.nombre}`);
+    } catch (error) {
+      console.error('Error guardando historial de partida:', error);
+    }
 
     io.to(codigo).emit('partida-finalizada', { podio, rankingFinal });
 
