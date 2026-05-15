@@ -126,6 +126,7 @@ export default function CreateQuiz() {
     setCargando(true);
     try {
       const payload = { titulo, descripcion, docenteId: usuario._id, preguntas, configuracion: config };
+      console.log(payload);
       if (esEdicion) {
         await quizzesAPI.update(id, payload);
         toast.success('Cuestionario actualizado ✅');
@@ -328,8 +329,8 @@ export default function CreateQuiz() {
                         type="button"
                         onClick={() => setPreguntaTemp(p => ({ ...p, correcta: letra }))}
                         className={`flex-1 py-2.5 rounded-xl font-display font-bold text-base transition-all ${preguntaTemp.correcta === letra
-                            ? 'text-white scale-105'
-                            : 'text-gray-400 opacity-50 hover:opacity-75'
+                          ? 'text-white scale-105'
+                          : 'text-gray-400 opacity-50 hover:opacity-75'
                           }`}
                         style={{
                           background: preguntaTemp.correcta === letra ? COLORES_OPCION[letra] : 'rgba(255,255,255,0.07)',
