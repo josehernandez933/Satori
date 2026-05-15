@@ -125,8 +125,7 @@ export default function CreateQuiz() {
     if (preguntas.length === 0) return toast.error('Agrega al menos una pregunta');
     setCargando(true);
     try {
-      const payload = { titulo, descripcion, docenteId: usuario._id, preguntas, configuracion: config };
-      console.log(payload);
+      const payload = { titulo, descripcion, docenteId: usuario?.id || usuario?._id || "docente-temp", preguntas, configuracion: config };
       if (esEdicion) {
         await quizzesAPI.update(id, payload);
         toast.success('Cuestionario actualizado ✅');
