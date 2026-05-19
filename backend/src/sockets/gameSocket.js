@@ -3,9 +3,22 @@
 // Socket.io - GameSocket con Mongoose
 // =============================================
 
+const os = require('os');
 const { v4: uuidv4 } = require('uuid');
 const Quiz = require('../models/Quiz');
 const Game = require('../models/Game');
+
+function getLocalIP() {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        return iface.address;
+      }
+    }
+  }
+  return 'localhost';
+}
 
 // Almacén de salas activas en memoria
 const salas = {}; // { codigoSala: { ...datosPartida } }
@@ -63,7 +76,8 @@ module.exports = function(io) {
           estado: 'esperando', // esperando | jugando | finalizado
           preguntaActual: -1,
           iniciada: false,
-          creadaEn: new Date().toISOString()
+          creadaEn: new Date().toISOString(),
+          ipLocal: getLocalIP()
         };
 
         salas[codigo] = sala;

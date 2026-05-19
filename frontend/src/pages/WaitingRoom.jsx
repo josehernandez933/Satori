@@ -82,7 +82,16 @@ export default function WaitingRoom() {
     navigate(esDocente ? '/dashboard' : '/');
   };
 
-  const urlUnirse = sala ? `${window.location.origin}/unirse?codigo=${sala.codigo}` : '';
+  const getUrlUnirse = () => {
+    if (!sala) return '';
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const port = window.location.port ? `:${window.location.port}` : '';
+    const base = (isLocalhost && sala.ipLocal) 
+      ? `http://${sala.ipLocal}${port}` 
+      : window.location.origin;
+    return `${base}/unirse?codigo=${sala.codigo}`;
+  };
+  const urlUnirse = getUrlUnirse();
 
   if (!sala && !jugador) return null;
 
