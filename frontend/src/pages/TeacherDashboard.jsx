@@ -11,7 +11,6 @@ import { useAuth } from '../context/AuthContext';
 import { quizzesAPI } from '../services/api';
 import { useSocket } from '../hooks/useSocket';
 import { useGame } from '../context/GameContext';
-import { QRCodeSVG } from 'qrcode.react';
 
 export default function TeacherDashboard() {
   const navigate = useNavigate();
@@ -21,8 +20,6 @@ export default function TeacherDashboard() {
 
   const [quizzes, setQuizzes]         = useState([]);
   const [cargando, setCargando]       = useState(true);
-  const [salaActiva, setSalaActiva]   = useState(null); // { codigo, sala }
-  const [modalQR, setModalQR]         = useState(false);
 
   // Cargar cuestionarios del docente
   useEffect(() => {
@@ -32,17 +29,16 @@ export default function TeacherDashboard() {
   // Escuchar evento sala-creada
   useEffect(() => {
     const off = on('sala-creada', ({ codigo, sala }) => {
-      setSalaActiva({ codigo, sala });
       setSala(sala);
       setEstado('esperando');
-      setModalQR(true);
       toast.success(`✅ Sala creada: ${codigo}`);
+      navigate('/sala-espera');
     });
 
     const offError = on('error-sala', ({ mensaje }) => toast.error(mensaje));
 
     return () => { off(); offError(); };
-  }, [on]);
+  }, [on, navigate, setSala, setEstado]);
 
   const cargarQuizzes = async () => {
     setCargando(true);
@@ -71,18 +67,11 @@ export default function TeacherDashboard() {
     emit('crear-sala', { quizId, docenteId: usuario.id, docenteNombre: usuario.nombre });
   };
 
-  const irASalaEspera = () => {
-    setModalQR(false);
-    navigate('/sala-espera');
-  };
-
   const handleLogout = () => {
     resetGame();
     logout();
     navigate('/');
   };
-
-  const urlUnirse = salaActiva ? `${window.location.origin}/unirse?codigo=${salaActiva.codigo}` : '';
 
   return (
     <div className="min-h-screen">
@@ -222,45 +211,6 @@ export default function TeacherDashboard() {
           )}
         </motion.div>
       </div>
-
-      {/* ── Modal QR ── */}
-      {modalQR && salaActiva && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)' }}>
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="card max-w-sm w-full text-center p-8"
-          >
-            <h3 className="font-display font-bold text-xl gradient-text mb-2">¡Sala Lista!</h3>
-            <p className="text-gray-400 text-sm mb-6">Comparte el código o QR con tus estudiantes</p>
-
-            {/* Código */}
-            <div className="glass rounded-2xl p-4 mb-4">
-              <div className="text-gray-400 text-xs mb-1">CÓDIGO DE SALA</div>
-              <div className="font-display font-black text-5xl gradient-text glow-purple tracking-widest">
-                {salaActiva.codigo}
-              </div>
-            </div>
-
-            {/* QR */}
-            <div className="flex justify-center mb-6">
-              <div className="p-3 bg-white rounded-2xl">
-                <QRCodeSVG value={urlUnirse} size={160} level="M" />
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <button onClick={() => setModalQR(false)} className="btn btn-outline flex-1">
-                Cerrar
-              </button>
-              <button onClick={irASalaEspera} className="btn btn-primary flex-1">
-                🚀 Ir a Sala de Espera
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
     </div>
   );
 }
