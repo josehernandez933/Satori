@@ -96,20 +96,9 @@ export default function WaitingRoom() {
     const port = window.location.port ? `:${window.location.port}` : '';
 
     // Evitar usar IPs internas de la nube/Render (ej. que empiezan con 10.x.x.x o 172.16-31.x.x)
-    const ipEsInternaNube = sala.ipLocal && (
-      sala.ipLocal.startsWith('10.') ||
-      sala.ipLocal.startsWith('172.1') ||
-      sala.ipLocal.startsWith('172.2') ||
-      sala.ipLocal.startsWith('172.3') ||
-      sala.ipLocal === '127.0.0.1' ||
-      sala.ipLocal === 'localhost'
-    );
-
-    // Prioridad 2: Usar sala.ipLocal si estamos en local y es una IP válida para red local (ej: 192.168.x.x)
-    // De lo contrario, usar window.location.origin (que apunta al Netlify del docente o a su localhost real)
-    const base = (isLocalhost && sala.ipLocal && !ipEsInternaNube) 
-      ? `http://${sala.ipLocal}${port}` 
-      : window.location.origin;
+    // Utilizamos la variable de entorno VITE_BACKEND_URL (definida en Vercel) como base del API.
+    const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || window.location.origin;
+    const base = BACKEND_URL;
 
     return `${base}/unirse?codigo=${sala.codigo}`;
   };
