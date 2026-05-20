@@ -29,6 +29,18 @@ export default function GameHistory() {
     return d.toLocaleDateString('es', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
 
+  const eliminarPartida = (id) => {
+    if (!window.confirm('¿Estás seguro de que deseas eliminar esta partida del historial?')) return;
+    
+    gamesAPI.delete(id)
+      .then(() => {
+        setPartidas(prev => prev.filter(p => p.id !== id));
+        setSeleccionada(null);
+        toast.success('Partida eliminada del historial 🧹');
+      })
+      .catch(() => toast.error('Error al eliminar la partida'));
+  };
+
   return (
     <div className="min-h-screen">
       <div className="glass border-b border-purple-500/20 px-6 py-4 flex items-center gap-3 sticky top-0 z-40">
@@ -113,8 +125,20 @@ export default function GameHistory() {
                         </div>
                       ))}
                     </div>
-                    <div className="mt-3 text-xs text-gray-500">
-                      Código de sala: <span className="font-display text-purple-400">{p.codigo}</span>
+                    <div className="mt-4 flex justify-between items-center gap-3 border-t border-purple-500/10 pt-4">
+                      <span className="text-xs text-gray-500">
+                        Código de sala: <span className="font-display text-purple-400">{p.codigo}</span>
+                      </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          eliminarPartida(p.id);
+                        }}
+                        className="btn btn-danger text-xs px-3 py-1.5 flex items-center gap-1.5"
+                        style={{ padding: '0.4rem 0.8rem', minHeight: 'auto' }}
+                      >
+                        🗑️ Eliminar
+                      </button>
                     </div>
                   </motion.div>
                 )}

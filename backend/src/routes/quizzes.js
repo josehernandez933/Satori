@@ -39,6 +39,13 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Título y docenteId son requeridos' });
     }
 
+    // Limitar la cantidad de cuestionarios creados por docente (máximo 15)
+    const MAX_QUIZZES = 15;
+    const count = await Quiz.countDocuments({ docenteId });
+    if (count >= MAX_QUIZZES) {
+      return res.status(400).json({ error: `Has alcanzado el límite máximo de ${MAX_QUIZZES} cuestionarios para tu cuenta de MongoDB gratuita.` });
+    }
+
     const nuevoQuiz = new Quiz({
       titulo,
       descripcion: descripcion || '',

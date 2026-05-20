@@ -423,6 +423,17 @@ module.exports = function(io) {
 
       await registroPartida.save();
       console.log(`🏆 Partida finalizada en sala ${codigo}. Ganador: ${podio[0]?.nombre}`);
+
+      // Auto-podado de historial de partidas: máximo 20 partidas por docente para ahorrar espacio en MongoDB Atlas
+      const MAX_HISTORIAL = 20;
+      const partidasDocente = await Game.find({ docenteId: sala.docenteId }).sort({ finalizadoEn: 1 }); // De más antiguas a más recientes
+      if (partidasDocente.length > MAX_HISTORIAL) {
+        const exceso = partidasDocente.length - MAX_HISTORIAL;
+        for (let i = 0; i < exceso; i++) {
+          await Game.deleteOne({ _id: partidasDocente[i]._id });
+          console.log(`🧹 Historial auto-podado: partida antigua ${partidasDocente[i].id} eliminada para liberar espacio.`);
+        }
+      }
     } catch (error) {
       console.error('Error guardando historial de partida:', error);
     }

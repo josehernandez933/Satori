@@ -141,11 +141,11 @@ export default function WaitingRoom() {
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="lg:w-72 flex flex-col gap-4"
+            className="lg:w-80 flex flex-col gap-4"
           >
             <div className="card p-5 text-center">
               <p className="text-gray-400 text-xs mb-1 font-accent tracking-widest">CÓDIGO DE SALA</p>
-              <div className="font-display font-black text-5xl gradient-text glow-purple tracking-widest my-2">
+              <div className="font-display font-black text-4xl sm:text-5xl gradient-text glow-purple tracking-wider my-2 whitespace-nowrap select-all">
                 {sala.codigo}
               </div>
               <p className="text-gray-500 text-xs">Comparte este código con tus estudiantes</p>

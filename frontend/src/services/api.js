@@ -45,4 +45,5 @@ export const questionsAPI = {
 export const gamesAPI = {
   getAll: (docenteId) => request(`/games?docenteId=${docenteId}`),
   getById: (id)       => request(`/games/${id}`),
+  delete: (id)        => request(`/games/${id}`, { method: 'DELETE' }),
 };
