@@ -115,6 +115,9 @@ export default function LoginPage() {
           </p>
         </div>
       </motion.div>
+      <footer className="absolute bottom-4 left-0 w-full text-center text-gray-500 text-xs font-accent">
+        SATORI — Desarrollado con 💜 por <span className="gradient-text font-bold glow-purple">Jose Hernandez</span> — Universitario de la Universidad de Córdoba
+      </footer>
     </div>
   );
 }

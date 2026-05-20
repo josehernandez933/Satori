@@ -174,8 +174,11 @@ export default function LandingPage() {
       </main>
 
       {/* ── Footer ── */}
-      <footer className="relative z-10 text-center py-4 text-gray-600 text-sm">
-        SATORI © 2025 — Plataforma Educativa Interactiva
+      <footer className="relative z-10 text-center py-6 text-gray-500 text-xs font-accent flex flex-col gap-1 items-center justify-center border-t border-purple-500/10 mt-12">
+        <div>SATORI © 2026 — Plataforma Educativa Interactiva</div>
+        <div className="text-gray-400 mt-1">
+          Desarrollado con 💜 por <span className="gradient-text font-bold glow-purple">Jose Hernandez</span> — Universitario de la Universidad de Córdoba
+        </div>
       </footer>
     </div>
   );

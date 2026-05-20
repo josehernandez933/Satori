@@ -67,7 +67,7 @@ export default function JoinGame() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 relative">
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-16 relative">
       {/* Glow fondo */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full opacity-10"
@@ -210,6 +210,9 @@ export default function JoinGame() {
           )}
         </div>
       </motion.div>
+      <footer className="absolute bottom-4 left-0 w-full text-center text-gray-500 text-xs font-accent">
+        SATORI — Desarrollado con 💜 por <span className="gradient-text font-bold glow-purple">Jose Hernandez</span> — Universitario de la Universidad de Córdoba
+      </footer>
     </div>
   );
 }
