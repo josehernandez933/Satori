@@ -84,11 +84,33 @@ export default function WaitingRoom() {
 
   const getUrlUnirse = () => {
     if (!sala) return '';
+
+    // Prioridad 1: URL de producción configurada en variables de entorno (VITE_FRONTEND_URL)
+    const envFrontendUrl = import.meta.env.VITE_FRONTEND_URL;
+    if (envFrontendUrl) {
+      const base = envFrontendUrl.replace(/\/$/, '');
+      return `${base}/unirse?codigo=${sala.codigo}`;
+    }
+
     const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     const port = window.location.port ? `:${window.location.port}` : '';
-    const base = (isLocalhost && sala.ipLocal) 
+
+    // Evitar usar IPs internas de la nube/Render (ej. que empiezan con 10.x.x.x o 172.16-31.x.x)
+    const ipEsInternaNube = sala.ipLocal && (
+      sala.ipLocal.startsWith('10.') ||
+      sala.ipLocal.startsWith('172.1') ||
+      sala.ipLocal.startsWith('172.2') ||
+      sala.ipLocal.startsWith('172.3') ||
+      sala.ipLocal === '127.0.0.1' ||
+      sala.ipLocal === 'localhost'
+    );
+
+    // Prioridad 2: Usar sala.ipLocal si estamos en local y es una IP válida para red local (ej: 192.168.x.x)
+    // De lo contrario, usar window.location.origin (que apunta al Netlify del docente o a su localhost real)
+    const base = (isLocalhost && sala.ipLocal && !ipEsInternaNube) 
       ? `http://${sala.ipLocal}${port}` 
       : window.location.origin;
+
     return `${base}/unirse?codigo=${sala.codigo}`;
   };
   const urlUnirse = getUrlUnirse();
